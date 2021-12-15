@@ -161,6 +161,7 @@ class CharCorruptionDataset(Dataset):
         self.block_size = block_size
         self.vocab_size = vocab_size
         self.data = data.split('\n')
+        self.data = self.data[:-1]
 
     def __len__(self):
         # returns the length of the dataset
@@ -168,8 +169,29 @@ class CharCorruptionDataset(Dataset):
 
     def __getitem__(self, idx):
         # TODO [part e]: see spec above
-        
-        raise NotImplementedError
+        from random import randint
+        doc = self.data[idx]
+        trunc_len = randint(4, int(self.block_size*7/8))
+        trunc_len = min(len(doc), trunc_len)
+        trunc_doc = doc[:trunc_len]
+
+        masked_len = random.randint(int(1 / 8 * trunc_len), int(3 / 8 * trunc_len))
+        # print(idx, len(doc), trunc_len, masked_len, doc[:20])
+        prefix_len = random.randint(1, trunc_len - masked_len - 1)
+
+        prefix = trunc_doc[:prefix_len]
+        masked_content = trunc_doc[prefix_len:prefix_len + masked_len]
+        suffix = trunc_doc[prefix_len + masked_len:]
+
+        masked_string = prefix + self.MASK_CHAR + suffix + self.MASK_CHAR + masked_content + self.PAD_CHAR * (
+                self.block_size - trunc_len - 2)
+        assert len(masked_string) == self.block_size
+        x = masked_string[:-1]
+        y = masked_string[1:]
+
+        x = torch.LongTensor([self.stoi[c] for c in x])
+        y = torch.LongTensor([self.stoi[c] for c in y])
+        return x, y
 
 """
 Code under here is strictly for your debugging purposes; feel free to modify

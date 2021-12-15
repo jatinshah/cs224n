@@ -94,12 +94,12 @@ class SynthesizerAttention(nn.Module):
         # calculate query, key, values for all heads in batch and move head forward to be the batch dim
         # k = self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         # q = self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
+        b = self.w1(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)  # (B, nh, T, hs)
+        b = F.relu(b)
         v = self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
-        # att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-        # synthetic attention: (B, T, C) * (C, C) -> (B, T, C) -> (B, nh, T, hs) * (hs, T)
-        att = F.relu(self.w1(x)).view(B, T, self.n_head, C // self.n_head).transpose(1, 2) @ self.w2 + self.b2
+        att = b @ self.w2[:, :T] + self.b2[:T]
         att = att.masked_fill(self.mask[:,:,:T,:T] == 0, -1e10) # todo: just use float('-inf') instead?
         att = F.softmax(att, dim=-1)
         att = self.attn_drop(att)

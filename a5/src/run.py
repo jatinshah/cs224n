@@ -136,9 +136,10 @@ elif args.function == 'evaluate':
     assert args.outputs_path is not None
     assert args.reading_params_path is not None
     assert args.eval_corpus_path is not None
-    model.load_state_dict(torch.load(args.reading_params_path))
+    model.load_state_dict(torch.load(args.reading_params_path, map_location='cpu'))
     correct = 0
     total = 0
+    device = 'cpu'
     with open(args.outputs_path, 'w') as fout:
         predictions = []
         for line in tqdm(open(args.eval_corpus_path)):
